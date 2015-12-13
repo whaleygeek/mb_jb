@@ -22,22 +22,26 @@ class MicroBit():
 
   @staticmethod
   def decodeType(ty):
-    if ty == COARSE: return COARSE
-    if ty == FINE:   return FINE
-    if ty == MONITOR:return MONITOR
+    if len(ty) == 0: return None
+    ty = ty[0]
+    if ty == MicroBit.COARSE: return ty
+    if ty == MicroBit.FINE:   return ty
+    if ty == MicroBit.MONITOR:return ty
     return None # Not known
   
   def __init__(self, portname):
-    self.port = portname
+    self.portname = portname
+    self.opened = False
 
   def open(self):
     s = serial.Serial(self.portname,
                       baudrate=self.BAUD,
                       parity=self.PARITY,
-                      bytesize=self.DATABITS
+                      bytesize=self.DATABITS,
                       stopbits=self.STOPBITS,
                       timeout=self.RXTIMEOUT)
     self.s = s
+    self.opened = True
     return self               
 
   def sendline(self, line):
@@ -62,22 +66,40 @@ class MicroBit():
 
 
 # Open connections to 3 micro:bits
-m1 = MicroBit(MICROBIT1_PORT).open()
-m2 = MicroBit(MICROBIT2_PORT).open()
-m3 = MicroBit(MICROBIT3_PORT).open()
+m1 = MicroBit(MICROBIT1_PORT)
+m2 = MicroBit(MICROBIT2_PORT)
+m3 = MicroBit(MICROBIT3_PORT)
 microbits = [m1, m2, m3]
+
+opencount = 0
+while opencount != 3:
+  for m in microbits:
+    if not m.opened:
+      print("trying to open %s" % m.portname)
+      try:
+        m.open()
+        opencount += 1
+      except serial.SerialException:
+        print("  could not open")
+        time.sleep(0.5)
+      print("  opened ok")
 
 # Poll data from each one, to work out what type it is
 # as the port numbers might move around on reset
 
 found = 0
 while found < 2:
+  time.sleep(0.5)
   for m in microbits:
     if m.mytype == None:
-      if m.hasdata()
+      print("check? %s" % m.portname)
+      if m.hasdata():
+        print("  identity?")
         msg = m.readline()
+        print("  rx:%s" % msg)
         ty = MicroBit.decodeType(msg)
         if ty != None:
+          print("  found %s" % ty)
           m.mytype = ty
           found += 1
 
