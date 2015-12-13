@@ -65,6 +65,12 @@ class MicroBit():
     self.s = None 
 
 
+#----- DETECTION ------------------------------------------------------------
+#
+# Auto detect 3 micro:bits and work out what type each of them are.
+# Every time you power cycle, they will appear in a different sequence
+# so they will have different portnames allocated to them.
+
 # Open connections to 3 micro:bits
 m1 = MicroBit(MICROBIT1_PORT)
 m2 = MicroBit(MICROBIT2_PORT)
@@ -112,6 +118,80 @@ for m in microbits:
 # Dump the detected configuration
 for m in microbits:
   print("%s -> %s" % (m.portname, m.mytype))
+
+
+# Create 3 separate named abstractions, one for each micro:bit
+
+class CoarseControl():
+  def __init__(self, microbit):
+    self.microbit = microbit
+
+class FineControl():
+  def __init__(self, microbit):
+    self.microbit = microbit
+
+class Monitor():
+  def __init__(self, microbit):
+    self.microbit = microbit
+
+
+# wrap one abstraction around each matching type
+
+coarse = None
+fine = None
+monitor = None
+
+for m in microbits:
+  ty = m.mytype
+  if ty == MicroBit.COARSE:
+    coarse = CoarseControl(m)
+  elif ty == MicroBit.FINE:
+    fine = FineControl(m)
+  elif ty == MicroBit.MONITOR:
+    monitor = Monitor(m)
+
+# Final sanity check just in case of a duplicate microbit type
+if coarse == None:
+  raise RuntimeError("Did not find a COARSE microbit")
+if fine == None:
+  raise RuntimeError("Did not find a FINE microbit")
+if monitor == None:
+  raise RuntimeError("Did not find a MONITOR microbit")
+
+
+#----- READING DATA ------------------------------------------------------
+
+PULSE_SIM_TIME_SEC = 1
+nextpulse = time.time() + PULSE_SIM_TIME_SEC
+pulseon = False
+
+while True:
+  found = 0
+
+  if coarse.microbit.hasdata():
+    msg = coarse.microbit.readline()
+    print("coarse: %s" % msg)
+    found += 1
+
+  if fine.microbit.hasdata():
+    msg = fine.microbit.readline()
+    print("fine:   %s" % msg)
+    found += 1
+    if len(msg) > 5:
+      if msg[:5] == 'F,E,R':
+        pulseon = True
+      else:
+        pulseon = False
+
+  now = time.time()
+  if now > nextpulse:
+    nextpulse = now + PULSE_SIM_TIME_SEC
+    if pulseon:
+      monitor.microbit.sendline("M,1,2,2")
+
+  if found == 0:
+    time.sleep(0.1)
+
 
 
 # END
