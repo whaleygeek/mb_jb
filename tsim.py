@@ -26,7 +26,7 @@ el_setpoint   = 0.0   # 0..90? 180?
 az_actual     = 225.0 # 0..359
 el_actual     = 45.0  # 0..90? 180?
 
-# J2000 reference frame in sezagesimal
+# J2000 reference frame in sexagesimal
 #ra_setpoint   = None
 #dec_setpoint  = None
 #ra_actual     = None
@@ -56,9 +56,16 @@ def incoming(msg):
     if len(msg) < 4: return error("Must use tel prefix")
     if msg[:4] != 'tel ': return error("Must use tel prefix")
 
-    # split out parts
-    msg = msg[4:]
-    parts = msg.split(" ",1)
+    # split out parts (tel name cmd params)
+    try:
+        tel, name, cmdargs = msg.split(" ",2)
+    except Exception as e:
+        print(e)
+        return error("Unparseable command line:%s" % msg)
+    
+    if not name in NAMES: return error("Unknown name:%s" % name)
+
+    parts = cmdargs.split(" ", 1)
     cmd = parts[0]
     if len(parts) > 1:
         args = parts[1]
@@ -66,10 +73,10 @@ def incoming(msg):
         args = None
 
     # decode command and dispatch
-    if   cmd == 'alloc':  alloc(args)
-    elif cmd == 'status': status(args)
-    elif cmd == 'azel':   azel(args)
-    elif cmd == 'pos':    pos(args)
+    if   cmd == 'alloc':  alloc(name)
+    elif cmd == 'status': status(name)
+    elif cmd == 'azel':   azel(name, args)
+    elif cmd == 'pos':    pos(name, args)
     else: error("Unknown command:%s" % cmd)
 
 
@@ -81,32 +88,39 @@ def ok(msg=""):
 
 def send(msg):
     print(msg)
-    # send a message back to the client
+    #TODO: send a message back to the client over network connection
 
-def alloc(params):
+def alloc(name):
     #trace("alloc:" + str(params))
-    if params == None: return error("Must provide a name")
-    if params in NAMES:
+    if name == None: return error("Must provide a name")
+    if name in NAMES:
         global selected_name
-        selected_name = params
+        selected_name = name
     else:
-        return error("Unknown name:%s" % params)
-    ok("allocated")
+        return error("Unknown name:%s" % name)
+    ok("allocated %s" % name)
     
-def status(params):
-    #trace("status:" + str(params))
+def status(name):
+    #trace("status:")
     if selected_name == None: return error("Nothing allocated")
     start_status_reports()
     ok("status reports enabled")
 
-def azel(params):
+def azel(name, params):
     trace("azel:" + str(params))
-    # parse out azimuth and elevation
-    # ERROR: if parse error
-    # change setpoints
-    # send back OK:
+    try:
+        az, el = params.split(" ", 1)
+        az = float(az)
+        el = float(el)
+    except:
+        return error("Invalid az/el:%s" % params)
 
-def pos(params):
+    global az_setpoint, el_setpoint
+    az_setpoint = az
+    el_setpoint = el
+    ok("Setpoints changed to az: %f el: %f" % (az, el)) 
+
+def pos(name, params):
     trace("pos:" + str(params))
     # parse out right ascension and declination in J2000
     # reference frame, positions in sexagesimal.
@@ -114,8 +128,8 @@ def pos(params):
     # change setpoints
     # OK: if was fine
 
-def send_status(params):
-    send("STAT: " + str(params))
+def send_status(msg):
+    send("STAT: " + str(msg))
 
 def move(amount):
     global az_actual, el_actual
