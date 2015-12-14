@@ -21,8 +21,8 @@ selected_name = None
 status_enabled = False
 
 # degrees
-az_setpoint   = 0.0   # 0..359
-el_setpoint   = 0.0   # 0..90? 180?
+az_setpoint   = 225.0 # 0..359
+el_setpoint   = 45.0  # 0..90? 180?
 az_actual     = 225.0 # 0..359
 el_actual     = 45.0  # 0..90? 180?
 
@@ -49,6 +49,9 @@ el_actual     = 45.0  # 0..90? 180?
 
 def trace(msg):
     print(str(msg))
+
+def warning(msg):
+    pass #print("WARNING: %s" % str(msg))
     
 def incoming(msg):
     trace("incoming:" + str(msg))
@@ -122,6 +125,7 @@ def azel(name, params):
 
 def pos(name, params):
     trace("pos:" + str(params))
+    error("UNIMPLEMENTED")
     # parse out right ascension and declination in J2000
     # reference frame, positions in sexagesimal.
     # ERROR: if parse error
@@ -131,21 +135,45 @@ def pos(name, params):
 def send_status(msg):
     send("STAT: " + str(msg))
 
-def move(amount):
+def move(speed):
     global az_actual, el_actual
     # move the item by a defined step, towards setpoints
     # at the moment only supports azel mode
     # move az cyclically
     # el has top and bottom endstops
 
-    # beware of end stops
-    # if az_actual < az_setpoint
-    # elif az_actual > az_setpoint
+    changed = False
+    # adjust azimuth if required
+    diff = abs(az_setpoint - az_actual)
+    if diff < speed:
+        warning("az error less than speed, not moved")
+        # Really should slow down speed? of az independent of el
+    else:
+        # dumb algorithm, will not take shortest cyclic path
+        if az_setpoint > az_actual:
+            az_actual += speed
+            changed = True
+        elif az_setpoint < az_actual:
+            az_actual -= speed
+            changed = True
+            
 
-    # beware of endstops
-    # if el_actual < el_setpoint
-    # elif el_actual > el_setpoint
-    pass
+    # adjust elevation if required
+    # assume setpoint range is valid
+    diff = abs(el_setpoint - el_actual)
+    if diff < speed:
+        warning("el error less than speed, not moved")
+        # really should slow down speed? of el independent of az
+    else:
+        if el_setpoint > el_actual:
+            el_actual += speed
+            changed = True
+        elif el_setpoint < el_actual:
+            el_actual -= speed
+            changed = True
+
+    if changed:
+        trace("speed %f caused new actuals: az:%f el:%f" % (speed, az_actual, el_actual))
 
 def tick():
     #trace("tick")
@@ -155,6 +183,7 @@ def tick():
         el = str(el_actual) # TODO:formatting
         send_status("%s %s %s %s %s" % (selected_name, timenow, "azel", az, el))
     move(1) # fast move increment for testing
+    # really, az/el should have separate speeds so they can be adjusted
 
 def run_server():
     trace("run_server")
