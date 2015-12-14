@@ -12,27 +12,17 @@ import time
 import network
 
 SERVER_PORT = 3001
-THRESHOLD = 32768/4
+THRESHOLD = 16384
 
 b1 = None
 phase = 0
 count = 0
 
-#binfile = open("bytestream.bin", "rb")
-
 def incoming(msg):
     global b1, phase, count, prev
 
-    #print("msglen:%d" % len(msg))
-    #if len(msg) == 1:
-    #    print("single byte: %d prev was %d" % (ord(msg[0]), prev))
-
     for c in msg:
         b = ord(c)
-        #fb = ord(binfile.read(1))
-        #print(fb, b)
-        #if b != fb:
-        #    print("diff: file:%d  net:%d" % (fb, b))
 
         if b1 == None:
             b1 = b
@@ -66,7 +56,6 @@ def run_listener():
         conn = network.BinaryConnection()
         while True:
             print("waiting for connection...")
-            ####TODO use BinaryConnection here
             conn.wait(whenHearCall=incoming, port=SERVER_PORT)
             print("connected!")
 
