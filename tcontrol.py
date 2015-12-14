@@ -8,7 +8,7 @@ import network
 
 PORT    = 7045
 #ADDRESS = "127.0.0.1" # localhost for testing
-ADDRESS = "130.88.9.58" # Jodrel control PC
+ADDRESS = "130.88.9.58" # J control PC
 NAME    = "7metre"
 
 az_actual = 0.0
