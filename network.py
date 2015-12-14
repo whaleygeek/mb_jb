@@ -53,7 +53,7 @@ class Connection():
     
     
   # client calling server
-  def call(self, addr, whenHearCall, port=None):
+  def call(self, addr, whenHearCall=None, port=None):
     self.trace("call:" + addr)
     if (port != None):
       self.port = port
@@ -66,7 +66,7 @@ class Connection():
   
   
   # server waiting for client
-  def wait(self, whenHearCall, port=None):
+  def wait(self, whenHearCall=None, port=None):
     self.trace("wait")
     if (port != None):
       self.port = port
@@ -211,7 +211,7 @@ def _close(handle):
 
 def _send(handle, data):
   trace("send:" + data)
-  data = data.encode('utf-8') #python3  
+  #data = data.encode('utf-8') #python3
   handle.sendall(data)
 
 
