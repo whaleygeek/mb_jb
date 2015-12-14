@@ -93,7 +93,11 @@ def ok(msg=""):
 
 def send(msg):
     trace("outgoing:%s" % msg)
-    network.say(msg)
+    if network.isConnected():
+        network.say(msg)
+    else:
+        stop_status_reports()
+        
 
 def alloc(name):
     #trace("alloc:" + str(params))
@@ -189,6 +193,8 @@ def tick():
 
 def run_server():
     trace("run_server")
+    start_ticker()
+    
     while True:
         try:
             trace("waiting for connection...")
@@ -200,6 +206,7 @@ def run_server():
 
             print("connection lost")
         finally:
+            stop_status_reports()
             network.hangUp()
     
 def start_ticker():
@@ -216,6 +223,10 @@ def start_ticker():
 def start_status_reports():
     global status_enabled
     status_enabled = True
+
+def stop_status_reports():
+    global status_enabled
+    status_enabled = False
 
 def run_console():
     trace("run_console")
