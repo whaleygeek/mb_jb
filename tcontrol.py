@@ -7,8 +7,9 @@ import network
 
 
 PORT    = 7045
-ADDRESS = "127.0.0.1" # localhost for testing
-NAME    = "lv"
+#ADDRESS = "127.0.0.1" # localhost for testing
+ADDRESS = "130.88.9.58" # Jodrel control PC
+NAME    = "7metre"
 
 az_actual = 0.0
 el_actual = 0.0
@@ -20,24 +21,28 @@ ERROR  = 'ERROR'
 
 
 def trace(msg):
-    pass#print(str(msg))
+    print(str(msg))
 
 def incoming(msg):
     global az_actual, el_actual, result, reason
     trace("incoming:" + str(msg))
 
-    if len(msg) > 10:
+    if len(msg) > 1:
         # STAT: 7metre 2015-12-10T15:45:43.000Z azel 206.512984 38.990994
         # STAT: <name> time azel <az> <el>
         try:
             parts = msg.split(" ")
             if parts[0] == "ERROR:":
+                trace("found error")
                 if result == None:
+                    trace("signalled error")
                     result = ERROR
                     reason = msg
 
             elif parts[0] == 'OK:':
+                trace("found ok")
                 if result == None:
+                    trace("signalled ok")
                     result = OK
                     reason = msg
 
@@ -74,6 +79,11 @@ def check_result():
             return False
 
 
+def send(msg):
+    trace("sending:" + str(msg))
+    network.say(msg)
+
+
 def test_controller():
     global result, reason
 
@@ -82,14 +92,24 @@ def test_controller():
     network.call(ADDRESS, whenHearCall=incoming, port=PORT)
     trace("connected!")
 
+    try:
+        run_control_test()
+    finally:
+        try:
+            trace("deallocating...")
+            send("tel %s dealloc" % NAME)
+            time.sleep(2)
+            trace("closing...")
+            network.hangUp()
+        except Exception as e:
+            print("Failed to dealloc: %s" % e)
+
+
+def run_control_test():
+    global result, reason
     # select the correct name
     result = None
-    network.say("tel %s alloc" % NAME)
-    check_result()
-
-    # start status reports
-    result = None
-    network.say("tel %s status" % NAME)
+    send("tel %s alloc" % NAME)
     check_result()
 
     # get a setpoint from user
@@ -102,13 +122,14 @@ def test_controller():
     el = str(el_setpoint) # apply any formatting
 
     result = None
-    network.say("tel %s azel %s %s" % (NAME, az, el))
+    send("tel %s azel %s %s" % (NAME, az, el))
     check_result()
 
     # track the setpoint
     # status messages come in via incoming() and update the globals.
     global az_actual, el_actual
     while True:
+        send("tel %s status" % NAME)
         time.sleep(1)
         diff_az = az_actual - az_setpoint
         diff_el = el_actual - el_setpoint
