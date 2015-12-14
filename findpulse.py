@@ -8,6 +8,13 @@
 # show time of each low/high as it is seen.
 # close down safely when connection lost, and listen again.
 
+# Python 2
+
+# To test
+# in first console window:    python findpulse.py > out
+# in second console window:   nc localhost 3001 < bytestream.bin
+# Edit the THRESHOLD below to change the switching point.
+
 import time
 import network
 
