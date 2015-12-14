@@ -21,10 +21,10 @@ selected_name = None
 status_enabled = False
 
 # degrees
-az_setpoint   = None # 0..359
-el_setpoint   = None # 0..90? 180?
-az_actual     = None # 0..359
-el_actual     = None # 0..90? 180?
+az_setpoint   = 0.0   # 0..359
+el_setpoint   = 0.0   # 0..90? 180?
+az_actual     = 225.0 # 0..359
+el_actual     = 45.0  # 0..90? 180?
 
 # J2000 reference frame in sezagesimal
 #ra_setpoint   = None
@@ -84,19 +84,20 @@ def send(msg):
     # send a message back to the client
 
 def alloc(params):
-    trace("alloc:" + str(params))
+    #trace("alloc:" + str(params))
     if params == None: return error("Must provide a name")
     if params in NAMES:
         global selected_name
         selected_name = params
     else:
         return error("Unknown name:%s" % params)
-    ok()
-
+    ok("allocated")
     
 def status(params):
-    trace("status:" + str(params))
+    #trace("status:" + str(params))
+    if selected_name == None: return error("Nothing allocated")
     start_status_reports()
+    ok("status reports enabled")
 
 def azel(params):
     trace("azel:" + str(params))
@@ -114,7 +115,7 @@ def pos(params):
     # OK: if was fine
 
 def send_status(params):
-    send("STAT:" + str(params))
+    send("STAT: " + str(params))
 
 def move(amount):
     global az_actual, el_actual
@@ -133,12 +134,12 @@ def move(amount):
     pass
 
 def tick():
-    trace("tick")
-    if status_enabled:
+    #trace("tick")
+    if status_enabled and selected_name != None:
         timenow = "2015-12-14T00:00:00.000Z" # dummy
         az = str(az_actual) # TODO:formatting
         el = str(el_actual) # TODO:formatting
-        send_status("%s %s %s %s" % (selected_name, timenow, "azel", az, el))
+        send_status("%s %s %s %s %s" % (selected_name, timenow, "azel", az, el))
     move(1) # fast move increment for testing
 
 def run_server():
