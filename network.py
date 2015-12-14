@@ -160,7 +160,7 @@ def _listenerThreadBody(handle, addr, whenHearFn, hangUpFn=None, packetiser=None
 
     # TODO use packetiser to do this if present
     # but need a way to manage buffer state (by-val or by-ref)
-    data = data.decode('utf-8') #python3    
+    #data = data.decode('utf-8') #python3    
     if (packetiser == None):
       if (whenHearFn != None):
         whenHearFn(data)

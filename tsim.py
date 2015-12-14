@@ -5,6 +5,8 @@ import time
 import thread
 import network
 
+PORT = 7045
+
 NAMES = [
     "lv",
     "mk2",
@@ -90,8 +92,8 @@ def ok(msg=""):
     send("OK: " + str(msg))
 
 def send(msg):
-    print(msg)
-    #TODO: send a message back to the client over network connection
+    trace("outgoing:%s" % msg)
+    network.say(msg)
 
 def alloc(name):
     #trace("alloc:" + str(params))
@@ -187,15 +189,28 @@ def tick():
 
 def run_server():
     trace("run_server")
-    # start server listening on port 7045
-    # register incoming message listener
-    # wait until break
+    while True:
+        try:
+            trace("waiting for connection...")
+            network.wait(whenHearCall=incoming, port=PORT)
+            trace("connected!")
+            while network.isConnected():
+                time.sleep(1)
+                print("wasting time...")
+
+            print("connection lost")
+        finally:
+            network.hangUp()
     
 def start_ticker():
     def body():
         while True:
             time.sleep(1)
-            tick()
+            try:
+                tick()
+            except Exception as e:
+                print("Exception in body: %s" % e)
+                
     thread.start_new_thread(body, ())
     
 def start_status_reports():
@@ -219,8 +234,8 @@ def run_console():
         
     
 if __name__ == "__main__":
-    #run_server()
-    run_console()
+    run_server()
+    #run_console()
 
 # END
 
