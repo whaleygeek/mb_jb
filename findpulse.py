@@ -18,21 +18,21 @@ b1 = None
 phase = 0
 count = 0
 
-binfile = open("bytestream.bin", "rb")
+#binfile = open("bytestream.bin", "rb")
 
 def incoming(msg):
     global b1, phase, count, prev
 
-    print("msglen:%d" % len(msg))
+    #print("msglen:%d" % len(msg))
     #if len(msg) == 1:
     #    print("single byte: %d prev was %d" % (ord(msg[0]), prev))
 
     for c in msg:
         b = ord(c)
-        fb = ord(binfile.read(1))
-        print(fb, b)
-        if b != fb:
-            print("diff: file:%d  net:%d" % (fb, b))
+        #fb = ord(binfile.read(1))
+        #print(fb, b)
+        #if b != fb:
+        #    print("diff: file:%d  net:%d" % (fb, b))
 
         if b1 == None:
             b1 = b
@@ -47,7 +47,7 @@ def incoming(msg):
                 if v < THRESHOLD:
                     count += 1
                 else:
-                    #print("low for: %d, but now %d" % (count, v))
+                    print("low for: %d, but now %d" % (count, v))
                     phase = 1
                     count = 1
 
@@ -55,24 +55,27 @@ def incoming(msg):
                 if v >= THRESHOLD:
                     count += 1
                 else:
-                    #print("high for: %d, but now %d" % (count, v))
+                    print("high for: %d, but now %d" % (count, v))
                     phase = 0
                     count = 1
 
-
+conn = None
 def run_listener():
+    global conn
     try:
+        conn = network.BinaryConnection()
         while True:
             print("waiting for connection...")
-            network.wait(whenHearCall=incoming, port=SERVER_PORT)
+            ####TODO use BinaryConnection here
+            conn.wait(whenHearCall=incoming, port=SERVER_PORT)
             print("connected!")
 
-            while network.isConnected():
+            while conn.isConnected():
                 time.sleep(1)
 
             print("connection lost!")
     finally:
-        network.hangUp()
+        conn.hangUp()
 
 
 if __name__ == "__main__":
