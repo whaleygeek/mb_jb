@@ -1,7 +1,36 @@
 # tsim.py  14/12/2015  D.J.Whale
+# Python 2
 
 import time
+import thread
 import network
+
+NAMES = [
+    "lv",
+    "mk2",
+    "da",
+    "pi",
+    "kn",
+    "de",
+    "cm",
+    "42ft",      
+    "7m"
+]
+
+selected_name = None
+status_enabled = False
+
+# degrees
+az_setpoint   = None # 0..359
+el_setpoint   = None # 0..90? 180?
+az_actual     = None # 0..359
+el_actual     = None # 0..90? 180?
+
+# J2000 reference frame in sezagesimal
+#ra_setpoint   = None
+#dec_setpoint  = None
+#ra_actual     = None
+#dec_setpoint  = None
 
 #commands
 # tel lv alloc - allocate
@@ -15,9 +44,11 @@ import network
 #   OK:
 #   ERROR:
 # tel lv pos 03:25:42.1 +22:10:10.3
+#   OK:
+#   ERROR:
 
 def trace(msg):
-    print("tsim:" + str(msg))
+    print(str(msg))
     
 def incoming(msg):
     trace("incoming:" + str(msg))
@@ -45,7 +76,7 @@ def incoming(msg):
 def error(msg):
     send("ERROR: " + str(msg))
 
-def ok(msg):
+def ok(msg=""):
     send("OK: " + str(msg))
 
 def send(msg):
@@ -54,12 +85,18 @@ def send(msg):
 
 def alloc(params):
     trace("alloc:" + str(params))
-    # simulate allocation
-    # send back ok if t name is known
+    if params == None: return error("Must provide a name")
+    if params in NAMES:
+        global selected_name
+        selected_name = params
+    else:
+        return error("Unknown name:%s" % params)
+    ok()
 
+    
 def status(params):
     trace("status:" + str(params))
-    # start status reporting on 1 second intervals
+    start_status_reports()
 
 def azel(params):
     trace("azel:" + str(params))
@@ -76,11 +113,50 @@ def pos(params):
     # change setpoints
     # OK: if was fine
 
+def send_status(params):
+    send("STAT:" + str(params))
+
+def move(amount):
+    global az_actual, el_actual
+    # move the item by a defined step, towards setpoints
+    # at the moment only supports azel mode
+    # move az cyclically
+    # el has top and bottom endstops
+
+    # beware of end stops
+    # if az_actual < az_setpoint
+    # elif az_actual > az_setpoint
+
+    # beware of endstops
+    # if el_actual < el_setpoint
+    # elif el_actual > el_setpoint
+    pass
+
+def tick():
+    trace("tick")
+    if status_enabled:
+        timenow = "2015-12-14T00:00:00.000Z" # dummy
+        az = str(az_actual) # TODO:formatting
+        el = str(el_actual) # TODO:formatting
+        send_status("%s %s %s %s" % (selected_name, timenow, "azel", az, el))
+    move(1) # fast move increment for testing
+
 def run_server():
     trace("run_server")
     # start server listening on port 7045
     # register incoming message listener
     # wait until break
+    
+def start_ticker():
+    def body():
+        while True:
+            time.sleep(1)
+            tick()
+    thread.start_new_thread(body, ())
+    
+def start_status_reports():
+    global status_enabled
+    status_enabled = True
 
 def run_console():
     trace("run_console")
@@ -90,6 +166,8 @@ def run_console():
         print(msg)
     global send
     send = csend
+
+    start_ticker()
     
     while True:
         cmd = raw_input("?> ")
