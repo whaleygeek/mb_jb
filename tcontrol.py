@@ -11,6 +11,12 @@ PORT    = 7045
 ADDRESS = "130.88.9.58" # J control PC
 NAME    = "7metre"
 
+
+#the position that should be commanded to go to for the second button press after the approximate position
+#has been set by azel  is 19:35:47.8259  +16:16:39.986
+#which is the strong pulsar with a period of about 0.36 seconds.
+
+
 az_actual = 0.0
 el_actual = 0.0
 
